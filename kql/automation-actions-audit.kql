@@ -1,0 +1,7 @@
+// Everything the Logic App managed identity did: proves the automation stayed in its lane.
+AuditLogs
+| where TimeGenerated > ago(14d)
+| where tostring(InitiatedBy.app.displayName) has "la-risky-user-response"
+| project TimeGenerated, OperationName, Target = tostring(TargetResources[0].userPrincipalName), Result
+| summarize Actions = count() by OperationName, bin(TimeGenerated, 1d)
+| order by TimeGenerated desc

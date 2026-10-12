@@ -1,0 +1,89 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": { "type": "string", "defaultValue": "la-risky-user-response" },
+    "location": { "type": "string", "defaultValue": "[resourceGroup().location]" },
+    "teamsWebhookUrl": { "type": "securestring", "metadata": { "description": "Incoming webhook for the SecOps channel" } }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": { "type": "SystemAssigned" },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "teamsWebhookUrl": { "type": "securestring" }
+          },
+          "triggers": {
+            "Every_15_minutes": {
+              "type": "Recurrence",
+              "recurrence": { "frequency": "Minute", "interval": 15 }
+            }
+          },
+          "actions": {
+            "Get_high_risk_users": {
+              "type": "Http",
+              "runAfter": {},
+              "inputs": {
+                "method": "GET",
+                "uri": "https://graph.microsoft.com/v1.0/identityProtection/riskyUsers?$filter=riskLevel eq 'high' and riskState eq 'atRisk'&$top=50",
+                "authentication": {
+                  "type": "ManagedServiceIdentity",
+                  "audience": "https://graph.microsoft.com"
+                }
+              }
+            },
+            "For_each_risky_user": {
+              "type": "Foreach",
+              "runAfter": { "Get_high_risk_users": ["Succeeded"] },
+              "foreach": "@body('Get_high_risk_users')?['value']",
+              "runtimeConfiguration": { "concurrency": { "repetitions": 1 } },
+              "actions": {
+                "Revoke_sessions": {
+                  "type": "Http",
+                  "runAfter": {},
+                  "inputs": {
+                    "method": "POST",
+                    "uri": "https://graph.microsoft.com/v1.0/users/@{items('For_each_risky_user')?['id']}/revokeSignInSessions",
+                    "authentication": {
+                      "type": "ManagedServiceIdentity",
+                      "audience": "https://graph.microsoft.com"
+                    }
+                  }
+                },
+                "Notify_SecOps": {
+                  "type": "Http",
+                  "runAfter": { "Revoke_sessions": ["Succeeded", "Failed"] },
+                  "inputs": {
+                    "method": "POST",
+                    "uri": "@parameters('teamsWebhookUrl')",
+                    "headers": { "Content-Type": "application/json" },
+                    "body": {
+                      "text": "HIGH RISK USER: @{items('For_each_risky_user')?['userPrincipalName']} | risk updated @{items('For_each_risky_user')?['riskLastUpdatedDateTime']} | sessions revoke status: @{actions('Revoke_sessions')['status']}. User-risk Conditional Access will force a secure password change at next sign-in. Triage per runbooks/risky-user-triage.md."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": {
+          "teamsWebhookUrl": { "value": "[parameters('teamsWebhookUrl')]" }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "managedIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), '2019-05-01', 'Full').identity.principalId]"
+    }
+  }
+}

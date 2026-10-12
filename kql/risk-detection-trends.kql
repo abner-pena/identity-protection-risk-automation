@@ -1,0 +1,6 @@
+// Weekly detection volume by type, to tune alert thresholds and spot campaigns.
+AADUserRiskEvents
+| where TimeGenerated > ago(30d)
+| summarize Detections = count(), Users = dcount(UserPrincipalName), Ips = dcount(IpAddress)
+    by RiskEventType, bin(TimeGenerated, 7d)
+| order by TimeGenerated desc, Detections desc

@@ -1,0 +1,24 @@
+{
+  "displayName": "CA-RISK-003 | Privileged roles | Any elevated sign-in risk is blocked",
+  "state": "enabledForReportingButNotEnforced",
+  "conditions": {
+    "clientAppTypes": ["all"],
+    "applications": { "includeApplications": ["All"] },
+    "users": {
+      "includeRoles": [
+        "62e90394-69f5-4237-9190-012177145e10",
+        "194ae4cb-b126-40b2-bd5b-6091b380977d",
+        "f28a1f50-f6e7-4571-818b-6a12f2af6b6c",
+        "29232cdf-9323-42fd-ade2-1d097af3e4de",
+        "b1be1c3e-b65d-4f19-8427-f6fa0d97feb9",
+        "729827e3-9c14-49f7-bb1b-9608f156bbb8"
+      ],
+      "excludeGroups": ["<BREAK_GLASS_GROUP_OBJECT_ID>"]
+    },
+    "signInRiskLevels": ["high", "medium", "low"]
+  },
+  "grantControls": {
+    "operator": "OR",
+    "builtInControls": ["block"]
+  }
+}

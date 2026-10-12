@@ -1,0 +1,12 @@
+// Admin actions that weaken or bypass risk response: dismissing risk, changing risk policies,
+// or editing CA policies that reference risk levels.
+AuditLogs
+| where TimeGenerated > ago(30d)
+| where OperationName in ("Dismiss risky user", "Confirm user compromised", "Confirm safe sign-in",
+                          "Update conditional access policy", "Delete conditional access policy")
+| extend Actor = coalesce(tostring(InitiatedBy.user.userPrincipalName), tostring(InitiatedBy.app.displayName))
+| extend Target = tostring(TargetResources[0].displayName)
+| where OperationName !in ("Update conditional access policy", "Delete conditional access policy")
+     or tostring(TargetResources[0].modifiedProperties) has_any ("userRiskLevels", "signInRiskLevels")
+| project TimeGenerated, OperationName, Actor, Target, Result
+| order by TimeGenerated desc

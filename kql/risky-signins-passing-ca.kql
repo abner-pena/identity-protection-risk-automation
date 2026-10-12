@@ -1,0 +1,12 @@
+// Risky sign-ins that SUCCEEDED, split by whether Conditional Access intervened.
+// A successful medium/high risk sign-in with no MFA step-up means a policy gap.
+SigninLogs
+| where TimeGenerated > ago(7d)
+| where RiskLevelDuringSignIn in ("medium", "high")
+| where ResultType == 0
+| extend MfaSatisfied = tostring(AuthenticationRequirement) == "multiFactorAuthentication"
+| project TimeGenerated, UserPrincipalName, RiskLevelDuringSignIn, RiskEventTypes_V2,
+          AuthenticationRequirement, MfaSatisfied, ConditionalAccessStatus, IPAddress,
+          Country = tostring(LocationDetails.countryOrRegion), AppDisplayName
+| where MfaSatisfied == false
+| order by TimeGenerated desc

@@ -1,0 +1,25 @@
+{
+  "displayName": "CA-RISK-002 | All users | Medium and high sign-in risk requires MFA",
+  "state": "enabledForReportingButNotEnforced",
+  "conditions": {
+    "clientAppTypes": ["all"],
+    "applications": { "includeApplications": ["All"] },
+    "users": {
+      "includeUsers": ["All"],
+      "excludeGroups": ["<BREAK_GLASS_GROUP_OBJECT_ID>"]
+    },
+    "signInRiskLevels": ["high", "medium"]
+  },
+  "grantControls": {
+    "operator": "OR",
+    "builtInControls": ["mfa"]
+  },
+  "sessionControls": {
+    "signInFrequency": {
+      "isEnabled": true,
+      "type": "everyTime",
+      "frequencyInterval": "everyTime",
+      "authenticationType": "primaryAndSecondaryAuthentication"
+    }
+  }
+}

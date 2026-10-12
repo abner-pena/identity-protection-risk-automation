@@ -1,0 +1,25 @@
+{
+  "displayName": "CA-RISK-001 | All users | High user risk requires secure password change",
+  "state": "enabledForReportingButNotEnforced",
+  "conditions": {
+    "clientAppTypes": ["all"],
+    "applications": { "includeApplications": ["All"] },
+    "users": {
+      "includeUsers": ["All"],
+      "excludeGroups": ["<BREAK_GLASS_GROUP_OBJECT_ID>"]
+    },
+    "userRiskLevels": ["high"]
+  },
+  "grantControls": {
+    "operator": "AND",
+    "builtInControls": ["mfa", "passwordChange"]
+  },
+  "sessionControls": {
+    "signInFrequency": {
+      "isEnabled": true,
+      "type": "everyTime",
+      "frequencyInterval": "everyTime",
+      "authenticationType": "primaryAndSecondaryAuthentication"
+    }
+  }
+}
